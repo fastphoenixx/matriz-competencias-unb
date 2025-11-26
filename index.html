@@ -3,19 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matriz de Competências - Piloto UnB EP</title>
+    <title>InterEPRUnB - Internacionalização Eng. Produção</title>
     
     <!-- 1. Design e Estilos -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        unb: {
+                            blue: '#003366', // Azul Institucional
+                            green: '#009933', // Verde Institucional
+                            light: '#f0f4f8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         .recharts-tooltip-wrapper { z-index: 50; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .animate-fade-in { animation: fadeIn 0.5s ease-out; }
         .modal-overlay { background-color: rgba(0, 0, 0, 0.5); }
-        /* Scrollbar fina */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
     
@@ -43,7 +57,7 @@
             LayoutDashboard, Database, Link as LinkIcon, BarChart3, Download, Upload, 
             Plus, Trash2, AlertCircle, CheckCircle2, Search, FileSpreadsheet,
             Network, Grid3X3, Save, RefreshCw, RotateCcw, Github, Key, BookOpen, Info,
-            ToggleLeft, ToggleRight, Filter, ChevronRight
+            ToggleLeft, ToggleRight, Filter, ChevronRight, HelpCircle, FileText, Edit3, Users, ExternalLink
         } from 'lucide-react';
         import { 
             BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -53,16 +67,18 @@
 
         // --- CONFIGURAÇÃO ---
         const CSV_FILENAME = 'dados_oficiais.csv';
+        const REPO_URL = 'https://github.com/fastphoenixx/matriz-competencias-unb'; 
+        const UNB_LOGO_URL = 'https://images.seeklogo.com/logo-png/32/1/unb-universidade-de-brasilia-logo-png_seeklogo-327945.png';
 
-        // Definições Oficiais (Referências)
+        // Definições Oficiais
         const DEFAULT_ABETS = [
-            { id: 'SO1', title: 'Resolução de Problemas', description: 'Habilidade de identificar, formular e resolver problemas complexos de engenharia aplicando princípios de engenharia, ciência e matemática.' },
-            { id: 'SO2', title: 'Design de Engenharia', description: 'Habilidade de aplicar design de engenharia para produzir soluções que atendam a necessidades especificadas com consideração à saúde pública, segurança e bem-estar, bem como fatores globais, culturais, sociais, ambientais e econômicos.' },
+            { id: 'SO1', title: 'Resolução de Problemas', description: 'Habilidade de identificar, formular e resolver problemas complexos de engenharia.' },
+            { id: 'SO2', title: 'Design de Engenharia', description: 'Habilidade de aplicar design de engenharia para produzir soluções que atendam a necessidades especificadas.' },
             { id: 'SO3', title: 'Comunicação', description: 'Habilidade de se comunicar efetivamente com uma variedade de públicos.' },
-            { id: 'SO4', title: 'Ética e Impacto', description: 'Habilidade de reconhecer responsabilidades éticas e profissionais em situações de engenharia e fazer julgamentos informados, que devem considerar o impacto das soluções de engenharia em contextos globais, econômicos, ambientais e sociais.' },
-            { id: 'SO5', title: 'Trabalho em Equipe', description: 'Habilidade de funcionar efetivamente em uma equipe cujos membros juntos fornecem liderança, criam um ambiente colaborativo e inclusivo, estabelecem metas, planejam tarefas e cumprem objetivos.' },
-            { id: 'SO6', title: 'Experimentação', description: 'Habilidade de desenvolver e conduzir experimentação apropriada, analisar e interpretar dados, e usar julgamento de engenharia para tirar conclusões.' },
-            { id: 'SO7', title: 'Aprendizagem Contínua', description: 'Habilidade de adquirir e aplicar novos conhecimentos conforme necessário, usando estratégias de aprendizagem apropriadas.' }
+            { id: 'SO4', title: 'Ética e Impacto', description: 'Habilidade de reconhecer responsabilidades éticas e profissionais e fazer julgamentos informados.' },
+            { id: 'SO5', title: 'Trabalho em Equipe', description: 'Habilidade de funcionar efetivamente em uma equipe cujos membros juntos fornecem liderança.' },
+            { id: 'SO6', title: 'Experimentação', description: 'Habilidade de desenvolver e conduzir experimentação apropriada, analisar e interpretar dados.' },
+            { id: 'SO7', title: 'Aprendizagem Contínua', description: 'Habilidade de adquirir e aplicar novos conhecimentos conforme necessário.' }
         ];
         const DEFAULT_PPC = [
             { id: 'PPC-EP-01', title: 'Modelagem', description: 'Modelagem e resolução de problemas de sistemas produtivos.' },
@@ -73,17 +89,16 @@
             { id: 'PPC-EP-07', title: 'Qualidade', description: 'Gestão da qualidade e melhoria contínua de processos.' }
         ];
 
-        const COLORS = ['#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626', '#db2777', '#4f46e5', '#0891b2', '#be123c'];
+        const COLORS = ['#003366', '#009933', '#005c99', '#33cc33', '#002244', '#66ff66', '#004080'];
 
-        // --- HELPER: Corretor de Texto (Fix Encoding) ---
-        // Corrige erros comuns de UTF-8 interpretado como ANSI/Latin1
+        // --- HELPER: Fix Encoding ---
         const fixEncoding = (text) => {
             if (!text) return "";
             return text
                 .replace(/Ã‡/g, "Ç").replace(/Ã§/g, "ç")
                 .replace(/Ãƒ/g, "Ã").replace(/Ã£/g, "ã")
                 .replace(/Ã•/g, "Õ").replace(/Ãµ/g, "õ")
-                .replace(/Ã /g, "Á").replace(/Ã¡/g, "á") // Atenção: Ã + espaço costuma ser Á
+                .replace(/Ã /g, "Á").replace(/Ã¡/g, "á")
                 .replace(/Ã‰/g, "É").replace(/Ã©/g, "é")
                 .replace(/Ã /g, "Í").replace(/Ã­/g, "í")
                 .replace(/Ã“/g, "Ó").replace(/Ã³/g, "ó")
@@ -96,23 +111,23 @@
 
         // --- COMPONENTES UI ---
         const SectionHeader = ({ title, description, action }) => (
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 bg-white p-4 rounded-lg border border-slate-100 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 bg-white p-6 rounded-lg border-l-4 border-unb-blue shadow-sm">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
-                    <p className="text-slate-500 text-sm">{description}</p>
+                    <h2 className="text-2xl font-bold text-unb-blue">{title}</h2>
+                    <p className="text-slate-500 text-sm mt-1">{description}</p>
                 </div>
                 {action}
             </div>
         );
 
-        const Card = ({ title, value, subtext, icon: Icon, color = "blue" }) => (
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start justify-between hover:shadow-md transition-shadow">
+        const Card = ({ title, value, subtext, icon: Icon }) => (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start justify-between hover:shadow-md transition-shadow group">
                 <div>
                     <p className="text-slate-500 text-sm font-medium mb-1">{title}</p>
-                    <h3 className="text-3xl font-bold text-slate-800">{value}</h3>
+                    <h3 className="text-3xl font-bold text-unb-blue group-hover:text-unb-green transition-colors">{value}</h3>
                     {subtext && <p className="text-slate-400 text-xs mt-2">{subtext}</p>}
                 </div>
-                <div className={`p-3 rounded-lg bg-${color}-50 text-${color}-600`}>
+                <div className="p-3 rounded-lg bg-unb-light text-unb-blue group-hover:bg-green-50 group-hover:text-unb-green transition-colors">
                     {Icon && <Icon size={24} />}
                 </div>
             </div>
@@ -121,33 +136,27 @@
         // --- APP ---
         function App() {
             const [activeTab, setActiveTab] = useState('dashboard');
-            const [mappingSubTab, setMappingSubTab] = useState('abet');
             const [isLoading, setIsLoading] = useState(true);
             const [loadSource, setLoadSource] = useState('');
             
-            // Estados de Visualização
             const [sankeyMode, setSankeyMode] = useState('abet');
+            const [sankeyFilter, setSankeyFilter] = useState('all');
             const [heatmapMode, setHeatmapMode] = useState('abet');
-            
-            // Estado do Explorador de Análise (Novo)
-            const [analysisMode, setAnalysisMode] = useState('abet'); // 'abet' ou 'ppc'
-            const [selectedAnalysisItem, setSelectedAnalysisItem] = useState(null); // ID do SO ou PPC selecionado
+            const [analysisMode, setAnalysisMode] = useState('abet');
+            const [selectedAnalysisItem, setSelectedAnalysisItem] = useState(null);
 
-            // Modal State
             const [showModal, setShowModal] = useState(false);
             const [ghConfig, setGhConfig] = useState({ owner: '', repo: '', token: '' });
             const [syncStatus, setSyncStatus] = useState('idle'); 
 
-            // Estados de Dados
             const [disciplines, setDisciplines] = useState([]);
             const [mappings, setMappings] = useState([]);
             const [abetSOs, setAbetSOs] = useState(DEFAULT_ABETS);
             const [ppcCompetencies, setPpcCompetencies] = useState(DEFAULT_PPC);
 
             const fileInputRef = useRef(null);
-            const [newMapping, setNewMapping] = useState({ discipline: '', targetId: '', evidence: '', status: true });
 
-            // --- LÓGICA DE AUTO-CARREGAMENTO ---
+            // --- AUTO-LOAD ---
             useEffect(() => {
                 const initData = async () => {
                     setIsLoading(true);
@@ -160,78 +169,24 @@
                         if (response.ok) {
                             const text = await response.text();
                             processCSVData(text, 'github');
-                        } else {
-                            throw new Error("Arquivo local não encontrado");
-                        }
+                        } else { throw new Error("Local missing"); }
                     } catch (err) {
-                        console.log("Falha load auto:", err);
                         const localDisc = localStorage.getItem('unb_disciplines');
                         const localMap = localStorage.getItem('unb_mappings');
                         if (localDisc && localMap) {
                             setDisciplines(JSON.parse(localDisc));
                             setMappings(JSON.parse(localMap));
                             setLoadSource('cache');
-                        } else {
-                            setLoadSource('vazio');
-                        }
-                    } finally {
-                        setIsLoading(false);
-                    }
+                        } else { setLoadSource('vazio'); }
+                    } finally { setIsLoading(false); }
                 };
                 initData();
             }, []);
 
-            // Cache Local
             useEffect(() => { if(disciplines.length > 0) localStorage.setItem('unb_disciplines', JSON.stringify(disciplines)); }, [disciplines]);
             useEffect(() => { if(mappings.length > 0) localStorage.setItem('unb_mappings', JSON.stringify(mappings)); }, [mappings]);
 
-            // --- FUNÇÕES DE GITHUB API ---
-            const generateCSVContent = () => {
-                const header = "cod_disc,nome_disc,ementa,ppc_comp,abet_so,justificativa_abet\n";
-                const rows = mappings.map(m => {
-                    const disc = disciplines.find(d => d.code === m.discipline);
-                    const discName = disc ? disc.name : "Desconhecida";
-                    const escape = (txt) => txt ? txt.replace(/"/g, '""') : '';
-                    return `"${m.discipline}","${escape(discName)}","","${m.ppc || ''}","${m.abet || ''}","${escape(m.evidence)}"\n`;
-                }).join(""); 
-                return header + rows;
-            };
-
-            const saveToGitHub = async () => {
-                if (!ghConfig.owner || !ghConfig.repo || !ghConfig.token) { alert("Preencha todos os campos."); return; }
-                setSyncStatus('loading');
-                try {
-                    const content = generateCSVContent();
-                    const contentEncoded = btoa(unescape(encodeURIComponent(content)));
-                    const apiUrl = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${CSV_FILENAME}`;
-                    
-                    const getResponse = await fetch(apiUrl, { headers: { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json' } });
-                    let sha = null;
-                    if (getResponse.ok) { const getData = await getResponse.json(); sha = getData.sha; }
-
-                    const putResponse = await fetch(apiUrl, {
-                        method: 'PUT',
-                        headers: { 'Authorization': `token ${ghConfig.token}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: `Update WebApp (${new Date().toLocaleString()})`, content: contentEncoded, branch: 'main', sha: sha || undefined })
-                    });
-
-                    if (putResponse.ok) {
-                        setSyncStatus('success');
-                        localStorage.setItem('gh_owner', ghConfig.owner);
-                        localStorage.setItem('gh_repo', ghConfig.repo);
-                        setTimeout(() => { setShowModal(false); setSyncStatus('idle'); }, 2000);
-                        alert("Sucesso! GitHub atualizado.");
-                    } else {
-                        const errData = await putResponse.json();
-                        throw new Error(errData.message);
-                    }
-                } catch (error) {
-                    setSyncStatus('error');
-                    alert("Erro: " + error.message);
-                }
-            };
-
-            // --- PARSERS CSV ---
+            // --- PARSERS ---
             const parseCSVLine = (text) => {
                 const result = [];
                 let cell = '';
@@ -251,12 +206,10 @@
                     const lines = csvText.split('\n').filter(line => line.trim() !== '');
                     const newDisciplinesMap = new Map();
                     const newMappings = [];
-                    
                     for (let i = 1; i < lines.length; i++) {
                         const row = parseCSVLine(lines[i]);
                         if (row.length >= 6) {
                             const code = row[0].replace(/^"|"$/g, '');
-                            // APLICA O CORRETOR DE ENCODING
                             const name = fixEncoding(row[1].replace(/^"|"$/g, ''));
                             const ementa = fixEncoding(row[2].replace(/^"|"$/g, ''));
                             const ppc = row[3].replace(/^"|"$/g, '');
@@ -295,6 +248,42 @@
                 reader.readAsText(file);
             };
 
+            const generateCSVContent = () => {
+                const header = "cod_disc,nome_disc,ementa,ppc_comp,abet_so,justificativa_abet\n";
+                const rows = mappings.map(m => {
+                    const disc = disciplines.find(d => d.code === m.discipline);
+                    const discName = disc ? disc.name : "Desconhecida";
+                    const escape = (txt) => txt ? txt.replace(/"/g, '""') : '';
+                    return `"${m.discipline}","${escape(discName)}","","${m.ppc || ''}","${m.abet || ''}","${escape(m.evidence)}"\n`;
+                }).join(""); 
+                return header + rows;
+            };
+
+            const saveToGitHub = async () => {
+                if (!ghConfig.owner || !ghConfig.repo || !ghConfig.token) { alert("Preencha todos os campos."); return; }
+                setSyncStatus('loading');
+                try {
+                    const content = generateCSVContent();
+                    const contentEncoded = btoa(unescape(encodeURIComponent(content)));
+                    const apiUrl = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${CSV_FILENAME}`;
+                    const getResponse = await fetch(apiUrl, { headers: { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json' } });
+                    let sha = null;
+                    if (getResponse.ok) { const getData = await getResponse.json(); sha = getData.sha; }
+                    const putResponse = await fetch(apiUrl, {
+                        method: 'PUT',
+                        headers: { 'Authorization': `token ${ghConfig.token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: `Update WebApp (${new Date().toLocaleString()})`, content: contentEncoded, branch: 'main', sha: sha || undefined })
+                    });
+                    if (putResponse.ok) {
+                        setSyncStatus('success');
+                        localStorage.setItem('gh_owner', ghConfig.owner);
+                        localStorage.setItem('gh_repo', ghConfig.repo);
+                        setTimeout(() => { setShowModal(false); setSyncStatus('idle'); }, 2000);
+                        alert("Sucesso! GitHub atualizado.");
+                    } else { throw new Error((await putResponse.json()).message); }
+                } catch (error) { setSyncStatus('error'); alert("Erro: " + error.message); }
+            };
+
             // --- CÁLCULOS ---
             const stats = useMemo(() => {
                 const uniqueDisciplines = new Set(mappings.map(m => m.discipline)).size;
@@ -306,184 +295,151 @@
                 };
             }, [mappings, disciplines]);
 
-            // Dados Sankey (Filtrados pelo modo)
             const sankeyData = useMemo(() => {
                 const nodes = [];
                 const links = [];
-                const activeDisciplines = disciplines.filter(d => mappings.some(m => m.discipline === d.code && (sankeyMode === 'abet' ? m.abet : m.ppc)));
+                const filteredMappings = mappings.filter(m => {
+                    if (sankeyMode === 'abet') return m.abet && (sankeyFilter === 'all' || m.abet === sankeyFilter);
+                    else return m.ppc && (sankeyFilter === 'all' || m.ppc === sankeyFilter);
+                });
+                const activeDisciplines = disciplines.filter(d => filteredMappings.some(m => m.discipline === d.code));
                 activeDisciplines.forEach(d => nodes.push({ name: d.code })); 
-                if (sankeyMode === 'abet') { abetSOs.forEach(a => nodes.push({ name: a.id })); } else { ppcCompetencies.forEach(p => nodes.push({ name: p.id })); }
-
-                mappings.forEach(m => {
-                    const srcIdx = nodes.findIndex(n => n.name === m.discipline);
-                    if (sankeyMode === 'abet' && m.abet) {
-                        const targetIdx = nodes.findIndex(n => n.name === m.abet);
-                        if (srcIdx > -1 && targetIdx > -1) {
-                            const existing = links.find(l => l.source === srcIdx && l.target === targetIdx);
-                            if (existing) existing.value++; else links.push({ source: srcIdx, target: targetIdx, value: 1 });
-                        }
-                    } else if (sankeyMode === 'ppc' && m.ppc) {
-                        const targetIdx = nodes.findIndex(n => n.name === m.ppc);
-                        if (srcIdx > -1 && targetIdx > -1) {
-                            const existing = links.find(l => l.source === srcIdx && l.target === targetIdx);
-                            if (existing) existing.value++; else links.push({ source: srcIdx, target: targetIdx, value: 1 });
-                        }
+                if (sankeyMode === 'abet') {
+                    if (sankeyFilter === 'all') abetSOs.forEach(a => nodes.push({ name: a.id })); else nodes.push({ name: sankeyFilter });
+                } else {
+                    if (sankeyFilter === 'all') ppcCompetencies.forEach(p => nodes.push({ name: p.id })); else nodes.push({ name: sankeyFilter });
+                }
+                const uniqueNodes = [...new Map(nodes.map(item => [item.name, item])).values()];
+                filteredMappings.forEach(m => {
+                    const srcIdx = uniqueNodes.findIndex(n => n.name === m.discipline);
+                    let targetName = sankeyMode === 'abet' ? m.abet : m.ppc;
+                    const targetIdx = uniqueNodes.findIndex(n => n.name === targetName);
+                    if (srcIdx > -1 && targetIdx > -1) {
+                        const existing = links.find(l => l.source === srcIdx && l.target === targetIdx);
+                        if (existing) existing.value++; else links.push({ source: srcIdx, target: targetIdx, value: 1 });
                     }
                 });
-                if (nodes.length === 0 || links.length === 0) return { nodes: [{name: 'Sem dados'}], links: [] };
-                return { nodes, links };
-            }, [mappings, disciplines, ppcCompetencies, abetSOs, sankeyMode]);
+                if (uniqueNodes.length < 2 || links.length === 0) return { nodes: [{name: 'Filtre para ver'}], links: [] };
+                return { nodes: uniqueNodes, links };
+            }, [mappings, disciplines, ppcCompetencies, abetSOs, sankeyMode, sankeyFilter]);
 
-            // Dados de Pizza
-            const pieDataABET = useMemo(() => abetSOs.map(so => ({ name: so.id, value: mappings.filter(m => m.abet === so.id).length })).filter(i => i.value > 0).sort((a,b) => b.value - a.value), [abetSOs, mappings]);
-            const pieDataPPC = useMemo(() => ppcCompetencies.map(ppc => ({ name: ppc.id, value: mappings.filter(m => m.ppc === ppc.id).length })).filter(i => i.value > 0).sort((a,b) => b.value - a.value), [ppcCompetencies, mappings]);
             const chartDataABET = useMemo(() => abetSOs.map(so => {
                 const count = new Set(mappings.filter(m => m.abet === so.id).map(m => m.discipline)).size;
                 return { name: so.id, fullDesc: so.description, Cobertura: count, fullMark: 7 };
             }), [abetSOs, mappings]);
 
+            const disciplineHeatmapData = useMemo(() => {
+                return disciplines.map(d => {
+                    const count = mappings.filter(m => m.discipline === d.code).length;
+                    return { name: d.code, value: count };
+                }).sort((a,b) => b.value - a.value).slice(0, 15);
+            }, [disciplines, mappings]);
+
+            // Dados de Pizza
+            const pieDataABET = useMemo(() => abetSOs.map(so => ({ name: so.id, value: mappings.filter(m => m.abet === so.id).length })).filter(i => i.value > 0).sort((a,b) => b.value - a.value), [abetSOs, mappings]);
+            const pieDataPPC = useMemo(() => ppcCompetencies.map(ppc => ({ name: ppc.id, value: mappings.filter(m => m.ppc === ppc.id).length })).filter(i => i.value > 0).sort((a,b) => b.value - a.value), [ppcCompetencies, mappings]);
+
             // --- UI RENDERERS ---
             
-            if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">Carregando base de dados...</div>;
+            if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-unb-blue font-bold animate-pulse">Carregando Dados UnB...</div>;
 
             const renderDashboard = () => (
-                <div className="animate-fade-in space-y-6">
-                    <div className="bg-white border-l-4 border-blue-500 p-4 shadow-sm rounded-r-lg flex justify-between items-center">
-                        <div><p className="text-sm font-bold text-blue-700 uppercase">Fonte de Dados</p><p className="text-xs text-slate-500">{loadSource === 'github' ? 'Conectado ao GitHub' : loadSource === 'cache' ? 'Memória Local' : 'Base Vazia'}</p></div>
-                        <div className="flex gap-2"><button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-slate-800 text-white text-xs font-bold px-3 py-1 rounded-full hover:bg-slate-900"><Upload size={14}/> Sincronizar Nuvem</button></div>
+                <div className="animate-fade-in space-y-6 text-center">
+                    <div className="bg-white p-8 rounded-2xl shadow-sm border-t-4 border-unb-blue">
+                        <h2 className="text-3xl font-bold text-unb-blue mb-2">InterEPRUnB</h2>
+                        <p className="text-slate-600 text-lg"><strong>Objetivo do Projeto:</strong> Validar, em escala piloto, a correlação entre competências declaradas no PPC e os Student Outcomes da ABET, evidenciando lacunas e fornecendo base para revisão curricular.</p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <Card title="% Disciplinas" value={`${stats.mappedDisciplines}%`} subtext="Com vínculo ativo" icon={LinkIcon} color="blue" />
-                        <Card title="# SOs Cobertos" value={`${stats.mappedSOs} / 7`} subtext="Critérios ABET" icon={CheckCircle2} color="green" />
-                        <Card title="Total Vínculos" value={stats.totalMappings} subtext="Evidências registradas" icon={Database} color="purple" />
-                        <Card title="Qualidade" value="Alta" subtext="Evidências descritivas" icon={AlertCircle} color="orange" />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
+                        <Card title="% Disciplinas" value={`${stats.mappedDisciplines}%`} subtext="Com vínculo ativo" icon={LinkIcon} />
+                        <Card title="# SOs Cobertos" value={`${stats.mappedSOs} / 7`} subtext="Critérios ABET" icon={CheckCircle2} />
+                        <Card title="Total Vínculos" value={stats.totalMappings} subtext="Evidências registradas" icon={Database} />
+                        <Card title="Qualidade" value="Alta" subtext="Evidências descritivas" icon={AlertCircle} />
                     </div>
+
+                    {/* SEÇÃO NOVA: Gráficos de Pizza para ABET e PPC */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <h3 className="text-lg font-bold text-slate-800 mb-2 text-center">Distribuição ABET (SOs)</h3>
+                            <div className="h-64"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={pieDataABET} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" label>{pieDataABET.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip /><Legend /></PieChart></ResponsiveContainer></div>
+                            <p className="text-xs text-slate-400 mt-2 text-center">Percentual de cobertura de cada Student Outcome.</p>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <h3 className="text-lg font-bold text-slate-800 mb-2 text-center">Distribuição PPC (Competências)</h3>
+                            <div className="h-64"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={pieDataPPC} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" label>{pieDataPPC.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />)}</Pie><Tooltip /><Legend /></PieChart></ResponsiveContainer></div>
+                            <p className="text-xs text-slate-400 mt-2 text-center">Percentual de cobertura de cada Competência do PPC.</p>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h3 className="text-lg font-bold text-slate-800 mb-2">Perfil do Curso</h3><div className="h-64"><ResponsiveContainer width="100%" height="100%"><RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartDataABET}><PolarGrid stroke="#e2e8f0" /><PolarAngleAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} /><PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} /><Radar name="Cobertura" dataKey="Cobertura" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} /><Tooltip /></RadarChart></ResponsiveContainer></div></div>
-                        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-100"><h3 className="text-lg font-bold text-slate-800 mb-2">Cobertura por Student Outcome</h3><div className="h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartDataABET} layout="vertical" margin={{ left: 0 }}><CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={true} /><XAxis type="number" hide /><YAxis dataKey="name" type="category" width={40} tick={{fontSize: 12}} /><Tooltip cursor={{fill: '#f1f5f9'}} /><Bar dataKey="Cobertura" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20}>{chartDataABET.map((entry, index) => ( <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} /> ))}</Bar></BarChart></ResponsiveContainer></div></div>
+                        <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <h3 className="text-lg font-bold text-slate-800 mb-2 text-center">Perfil do Curso (Radar ABET)</h3>
+                            <div className="h-64"><ResponsiveContainer width="100%" height="100%"><RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartDataABET}><PolarGrid stroke="#e2e8f0" /><PolarAngleAxis dataKey="name" tick={{ fill: '#003366', fontSize: 12 }} /><PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} /><Radar name="Cobertura" dataKey="Cobertura" stroke="#009933" fill="#009933" fillOpacity={0.6} /><Tooltip /></RadarChart></ResponsiveContainer></div>
+                            <p className="text-xs text-slate-400 mt-2 text-center">Este gráfico mostra o equilíbrio da cobertura entre os 7 Student Outcomes da ABET.</p>
+                        </div>
+                        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <h3 className="text-lg font-bold text-slate-800 mb-2 text-center">Cobertura por Student Outcome (Absoluto)</h3>
+                            <div className="h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartDataABET} layout="vertical" margin={{ left: 0 }}><CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={true} /><XAxis type="number" hide /><YAxis dataKey="name" type="category" width={40} tick={{fontSize: 12}} /><Tooltip cursor={{fill: '#f1f5f9'}} /><Bar dataKey="Cobertura" fill="#003366" radius={[0, 4, 4, 0]} barSize={20}>{chartDataABET.map((entry, index) => ( <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} /> ))}</Bar></BarChart></ResponsiveContainer></div>
+                            <p className="text-xs text-slate-400 mt-2 text-center">Quantidade absoluta de disciplinas que contribuem para cada Student Outcome.</p>
+                        </div>
                     </div>
                 </div>
             );
 
             const renderAdvanced = () => (
-                <div className="animate-fade-in">
-                    <SectionHeader title="Visualizações Avançadas" description="Diagramas de fluxo e densidade." action={<div className="text-sm text-purple-600 bg-purple-50 px-3 py-1 rounded-full border border-purple-100 font-medium">Acreditação</div>} />
+                <div className="animate-fade-in text-center">
+                    <SectionHeader title="Visualizações" description="Diagramas de fluxo e densidade." action={<div className="text-sm text-purple-600 bg-purple-50 px-3 py-1 rounded-full border border-purple-100 font-medium">Acreditação</div>} />
+                    
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
-                        <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-slate-800 flex items-center gap-2"><Network size={20} className="text-blue-500"/> Fluxo Curricular (Sankey)</h3><div className="flex bg-slate-100 p-1 rounded-lg"><button onClick={() => setSankeyMode('abet')} className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${sankeyMode === 'abet' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>Foco ABET</button><button onClick={() => setSankeyMode('ppc')} className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${sankeyMode === 'ppc' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500'}`}>Foco PPC</button></div></div>
-                        {sankeyData.links.length > 0 ? (<div className="h-[600px] w-full"><ResponsiveContainer width="100%" height="100%"><Sankey data={sankeyData} node={{ fill: '#64748b' }} nodePadding={50} margin={{ left: 10, right: 10, top: 10, bottom: 10 }} link={{ stroke: '#cbd5e1' }}><Tooltip /></Sankey></ResponsiveContainer></div>) : <div className="h-32 flex items-center justify-center text-slate-400">Sem dados.</div>}
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2"><Network size={20} className="text-unb-blue"/> Fluxo Curricular (Sankey)</h3>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <div className="flex bg-slate-100 p-1 rounded-lg">
+                                    <button onClick={() => { setSankeyMode('abet'); setSankeyFilter('all'); }} className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${sankeyMode === 'abet' ? 'bg-white text-unb-blue shadow-sm' : 'text-slate-500'}`}>Modo ABET</button>
+                                    <button onClick={() => { setSankeyMode('ppc'); setSankeyFilter('all'); }} className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${sankeyMode === 'ppc' ? 'bg-white text-unb-blue shadow-sm' : 'text-slate-500'}`}>Modo PPC</button>
+                                </div>
+                                <select className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-lg p-1.5 outline-none" value={sankeyFilter} onChange={(e) => setSankeyFilter(e.target.value)}>
+                                    <option value="all">Mostrar Todos</option>
+                                    {sankeyMode === 'abet' ? abetSOs.map(so => <option key={so.id} value={so.id}>{so.id}</option>) : ppcCompetencies.map(p => <option key={p.id} value={p.id}>{p.id}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                        {sankeyData.links.length > 0 ? (
+                            <div className="h-[600px] w-full"><ResponsiveContainer width="100%" height="100%"><Sankey data={sankeyData} node={{ fill: '#003366' }} nodePadding={50} margin={{ left: 10, right: 10, top: 10, bottom: 10 }} link={{ stroke: '#009933', strokeOpacity: 0.3 }}><Tooltip /></Sankey></ResponsiveContainer></div>
+                        ) : <div className="h-32 flex items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-lg">Nenhum dado encontrado.</div>}
+                        <p className="text-xs text-slate-400 mt-4">Este diagrama ilustra como as disciplinas (esquerda) se conectam e alimentam as competências (direita). Use o filtro acima para isolar uma competência.</p>
                     </div>
+                    
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
-                        <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-slate-800 flex items-center gap-2"><Grid3X3 size={20} className="text-blue-500"/> Matriz de Densidade (Heatmap)</h3><div className="flex bg-slate-100 p-1 rounded-lg"><button onClick={() => setHeatmapMode('abet')} className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${heatmapMode === 'abet' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>ABET</button><button onClick={() => setHeatmapMode('ppc')} className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${heatmapMode === 'ppc' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500'}`}>PPC</button></div></div>
-                        <table className="w-full text-sm border-collapse mt-4"><thead><tr><th className="p-3 text-left bg-slate-50 border border-slate-200 min-w-[150px]">Disciplina</th>{heatmapMode === 'abet' ? abetSOs.map(so => <th key={so.id} className="p-3 text-center bg-slate-50 border border-slate-200 w-12" title={so.title}><span className="font-bold text-slate-700">{so.id}</span></th>) : ppcCompetencies.map(p => <th key={p.id} className="p-3 text-center bg-slate-50 border border-slate-200 w-12" title={p.title}><span className="font-bold text-slate-700">{p.id}</span></th>)}</tr></thead><tbody>{disciplines.map(d => (<tr key={d.code}><td className="p-3 font-medium text-slate-700 border border-slate-200 bg-slate-50/50">{d.code}</td>{heatmapMode === 'abet' ? abetSOs.map(so => {const hasMapping = mappings.some(m => m.discipline === d.code && m.abet === so.id); return <td key={`${d.code}-${so.id}`} className={`p-3 border border-slate-200 text-center ${hasMapping ? 'bg-blue-600' : 'bg-white'}`}>{hasMapping && <CheckCircle2 size={16} className="text-white mx-auto" />}</td>}) : ppcCompetencies.map(p => {const hasMapping = mappings.some(m => m.discipline === d.code && m.ppc === p.id); return <td key={`${d.code}-${p.id}`} className={`p-3 border border-slate-200 text-center ${hasMapping ? 'bg-purple-600' : 'bg-white'}`}>{hasMapping && <CheckCircle2 size={16} className="text-white mx-auto" />}</td>})}</tr>))}</tbody></table>
+                        <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-slate-800 flex items-center gap-2"><Grid3X3 size={20} className="text-unb-blue"/> Matriz de Densidade</h3><div className="flex bg-slate-100 p-1 rounded-lg"><button onClick={() => setHeatmapMode('abet')} className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${heatmapMode === 'abet' ? 'bg-white text-unb-blue shadow-sm' : 'text-slate-500'}`}>ABET</button><button onClick={() => setHeatmapMode('ppc')} className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${heatmapMode === 'ppc' ? 'bg-white text-unb-blue shadow-sm' : 'text-slate-500'}`}>PPC</button></div></div>
+                        <table className="w-full text-sm border-collapse mt-4"><thead><tr><th className="p-3 text-left bg-slate-50 border border-slate-200 min-w-[150px]">Disciplina</th>{heatmapMode === 'abet' ? abetSOs.map(so => <th key={so.id} className="p-3 text-center bg-slate-50 border border-slate-200 w-12" title={so.title}><span className="font-bold text-slate-700">{so.id}</span></th>) : ppcCompetencies.map(p => <th key={p.id} className="p-3 text-center bg-slate-50 border border-slate-200 w-12" title={p.title}><span className="font-bold text-slate-700">{p.id}</span></th>)}</tr></thead><tbody>{disciplines.map(d => (<tr key={d.code}><td className="p-3 font-medium text-slate-700 border border-slate-200 bg-slate-50/50">{d.code}</td>{heatmapMode === 'abet' ? abetSOs.map(so => {const hasMapping = mappings.some(m => m.discipline === d.code && m.abet === so.id); return <td key={`${d.code}-${so.id}`} className={`p-3 border border-slate-200 text-center ${hasMapping ? 'bg-unb-blue' : 'bg-white'}`}>{hasMapping && <CheckCircle2 size={16} className="text-white mx-auto" />}</td>}) : ppcCompetencies.map(p => {const hasMapping = mappings.some(m => m.discipline === d.code && m.ppc === p.id); return <td key={`${d.code}-${p.id}`} className={`p-3 border border-slate-200 text-center ${hasMapping ? 'bg-unb-green' : 'bg-white'}`}>{hasMapping && <CheckCircle2 size={16} className="text-white mx-auto" />}</td>})}</tr>))}</tbody></table>
+                        <p className="text-xs text-slate-400 mt-4 text-center">Tabela de presença indicando quais competências cada disciplina atende (célula colorida = mapeado).</p>
                     </div>
                 </div>
             );
 
-            // --- NOVO: ANÁLISE DETALHADA COM SELETOR E LISTA ---
             const renderAnalysis = () => {
                 const currentItems = analysisMode === 'abet' ? abetSOs : ppcCompetencies;
-                
-                // Filtrar disciplinas para o item selecionado
-                const filteredDisciplines = selectedAnalysisItem 
-                    ? mappings.filter(m => (analysisMode === 'abet' ? m.abet === selectedAnalysisItem : m.ppc === selectedAnalysisItem))
-                    : [];
-
+                const filteredDisciplines = selectedAnalysisItem ? mappings.filter(m => (analysisMode === 'abet' ? m.abet === selectedAnalysisItem : m.ppc === selectedAnalysisItem)) : [];
                 return (
-                    <div className="animate-fade-in">
-                        <SectionHeader title="Explorador de Análise" description="Detalhe a cobertura por competência específica." action={<Filter size={20} className="text-slate-400"/>} />
+                    <div className="animate-fade-in text-center">
+                        <SectionHeader title="Análise Detalhada" description="Exploração por competência e densidade." action={<BarChart3 className="text-unb-blue"/>} />
                         
-                        {/* 1. Gráficos de Pizza (Resumo) */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                                <h3 className="font-bold text-slate-800 mb-4 text-center">Top SOs (ABET)</h3>
-                                <div className="h-48"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={pieDataABET} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value" label>{pieDataABET.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer></div>
-                            </div>
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                                <h3 className="font-bold text-slate-800 mb-4 text-center">Top Competências (PPC)</h3>
-                                <div className="h-48"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={pieDataPPC} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value" label>{pieDataPPC.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer></div>
-                            </div>
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
+                            <h3 className="font-bold text-slate-800 mb-4">Disciplinas com Maior Densidade de Vínculos (Top 15)</h3>
+                            <div className="h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={disciplineHeatmapData}><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="name" tick={{fontSize: 10}} interval={0} angle={-45} textAnchor="end" height={60}/><YAxis allowDecimals={false}/><Tooltip cursor={{fill: '#f0f9ff'}} /><Bar dataKey="value" name="Vínculos">{disciplineHeatmapData.map((entry, index) => (<Cell key={`cell-${index}`} fill={`rgba(0, 153, 51, ${0.4 + (entry.value / 10)})`} />))}</Bar></BarChart></ResponsiveContainer></div>
+                            <p className="text-xs text-slate-400 mt-2">Gráfico mostrando quais disciplinas possuem a maior quantidade de competências vinculadas (intensidade de cor).</p>
                         </div>
 
-                        {/* 2. Seletor Interativo */}
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden text-left">
                             <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                                <div className="flex gap-2">
-                                    <button onClick={() => { setAnalysisMode('abet'); setSelectedAnalysisItem(null); }} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${analysisMode === 'abet' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 border'}`}>ABET SOs</button>
-                                    <button onClick={() => { setAnalysisMode('ppc'); setSelectedAnalysisItem(null); }} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${analysisMode === 'ppc' ? 'bg-purple-600 text-white' : 'bg-white text-slate-600 border'}`}>PPC UnB</button>
-                                </div>
-                                <span className="text-xs text-slate-400">Selecione um item abaixo para ver detalhes</span>
+                                <div className="flex gap-2"><button onClick={() => { setAnalysisMode('abet'); setSelectedAnalysisItem(null); }} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${analysisMode === 'abet' ? 'bg-unb-blue text-white' : 'bg-white text-slate-600 border'}`}>ABET SOs</button><button onClick={() => { setAnalysisMode('ppc'); setSelectedAnalysisItem(null); }} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${analysisMode === 'ppc' ? 'bg-unb-green text-white' : 'bg-white text-slate-600 border'}`}>PPC UnB</button></div>
+                                <span className="text-xs text-slate-400">Selecione para detalhar</span>
                             </div>
-                            
                             <div className="grid grid-cols-1 md:grid-cols-3 min-h-[400px]">
-                                {/* Lista de Itens (Esquerda) */}
-                                <div className="col-span-1 border-r border-slate-100 bg-slate-50/50 p-4 overflow-y-auto max-h-[500px]">
-                                    <div className="space-y-2">
-                                        {currentItems.map(item => {
-                                            const count = mappings.filter(m => (analysisMode === 'abet' ? m.abet === item.id : m.ppc === item.id)).length;
-                                            return (
-                                                <button 
-                                                    key={item.id} 
-                                                    onClick={() => setSelectedAnalysisItem(item.id)}
-                                                    className={`w-full text-left p-3 rounded-lg border transition-all flex justify-between items-center ${selectedAnalysisItem === item.id ? 'bg-white border-blue-400 shadow-md ring-1 ring-blue-100' : 'bg-white border-slate-200 hover:border-blue-300'}`}
-                                                >
-                                                    <div>
-                                                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${analysisMode === 'abet' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{item.id}</span>
-                                                        <p className="text-xs text-slate-500 mt-1 line-clamp-1" title={item.title}>{item.title}</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs font-bold text-slate-400">{count}</span>
-                                                        <ChevronRight size={14} className="text-slate-300"/>
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-
-                                {/* Detalhes (Direita) */}
+                                <div className="col-span-1 border-r border-slate-100 bg-slate-50/50 p-4 overflow-y-auto max-h-[500px]"><div className="space-y-2">{currentItems.map(item => {const count = mappings.filter(m => (analysisMode === 'abet' ? m.abet === item.id : m.ppc === item.id)).length; return (<button key={item.id} onClick={() => setSelectedAnalysisItem(item.id)} className={`w-full text-left p-3 rounded-lg border transition-all flex justify-between items-center ${selectedAnalysisItem === item.id ? 'bg-white border-unb-blue shadow-md ring-1 ring-blue-100' : 'bg-white border-slate-200 hover:border-blue-300'}`}><div><span className={`text-xs font-bold px-2 py-0.5 rounded ${analysisMode === 'abet' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{item.id}</span><p className="text-xs text-slate-500 mt-1 line-clamp-1" title={item.title}>{item.title}</p></div><div className="flex items-center gap-2"><span className="text-xs font-bold text-slate-400">{count}</span><ChevronRight size={14} className="text-slate-300"/></div></button>); })}</div></div>
                                 <div className="col-span-2 p-6 bg-white">
-                                    {selectedAnalysisItem ? (
-                                        <div className="animate-fade-in">
-                                            <div className="mb-6">
-                                                <h3 className="text-2xl font-bold text-slate-800 mb-2">{selectedAnalysisItem}</h3>
-                                                <p className="text-slate-600 italic text-sm border-l-4 border-slate-200 pl-4">
-                                                    "{currentItems.find(i => i.id === selectedAnalysisItem)?.description}"
-                                                </p>
-                                            </div>
-                                            
-                                            <h4 className="font-bold text-sm text-slate-500 uppercase tracking-wide mb-4">Disciplinas que cobrem este item ({filteredDisciplines.length})</h4>
-                                            
-                                            {filteredDisciplines.length > 0 ? (
-                                                <div className="space-y-3">
-                                                    {filteredDisciplines.map(m => {
-                                                        const discInfo = disciplines.find(d => d.code === m.discipline);
-                                                        return (
-                                                            <div key={m.id} className="p-4 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
-                                                                <div className="flex justify-between items-start mb-2">
-                                                                    <span className="font-bold text-slate-800">{m.discipline}</span>
-                                                                    <span className="text-xs text-slate-400">{m.timestamp}</span>
-                                                                </div>
-                                                                <p className="text-xs text-slate-500 mb-2">{discInfo?.name}</p>
-                                                                <div className="text-sm text-slate-700 bg-yellow-50 p-3 rounded border border-yellow-100">
-                                                                    <span className="font-bold text-yellow-700 text-xs uppercase block mb-1">Evidência:</span>
-                                                                    {m.evidence}
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            ) : (
-                                                <div className="text-center p-8 border-2 border-dashed border-slate-200 rounded-lg text-slate-400">
-                                                    Nenhuma disciplina vinculada ainda.
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="h-full flex flex-col items-center justify-center text-slate-300">
-                                            <Filter size={48} className="mb-4 opacity-20"/>
-                                            <p>Selecione um item à esquerda para ver o detalhamento.</p>
-                                        </div>
-                                    )}
+                                    {selectedAnalysisItem ? (<div className="animate-fade-in"><div className="mb-6"><h3 className="text-2xl font-bold text-slate-800 mb-2">{selectedAnalysisItem}</h3><p className="text-slate-600 italic text-sm border-l-4 border-slate-200 pl-4">"{currentItems.find(i => i.id === selectedAnalysisItem)?.description}"</p></div><h4 className="font-bold text-sm text-slate-500 uppercase tracking-wide mb-4">Disciplinas vinculadas ({filteredDisciplines.length})</h4>{filteredDisciplines.length > 0 ? (<div className="space-y-3">{filteredDisciplines.map(m => {const discInfo = disciplines.find(d => d.code === m.discipline); return (<div key={m.id} className="p-4 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors"><div className="flex justify-between items-start mb-2"><span className="font-bold text-slate-800">{m.discipline}</span><span className="text-xs text-slate-400">{m.timestamp}</span></div><p className="text-xs text-slate-500 mb-2">{discInfo?.name}</p><div className="text-sm text-slate-700 bg-green-50 p-3 rounded border border-green-100"><span className="font-bold text-green-800 text-xs uppercase block mb-1">Evidência:</span>{m.evidence}</div></div>);})}</div>) : (<div className="text-center p-8 border-2 border-dashed border-slate-200 rounded-lg text-slate-400">Nenhuma disciplina vinculada.</div>)}</div>) : (<div className="h-full flex flex-col items-center justify-center text-slate-300"><Filter size={48} className="mb-4 opacity-20"/><p>Selecione um item à esquerda.</p></div>)}
                                 </div>
                             </div>
                         </div>
@@ -491,16 +447,56 @@
                 );
             };
 
-            // MANTÉM O RESTO DAS TELAS (About, Mapping, Catalog, Modal e Layout) IGUAL
-            const renderAbout = () => ( <div className="animate-fade-in max-w-4xl mx-auto"><SectionHeader title="Referências & Metodologia" description="Definições oficiais." action={<BookOpen size={24} className="text-slate-400"/>} /><div className="space-y-8"><div className="bg-white p-8 rounded-xl shadow-sm border border-slate-100"><h3 className="text-xl font-bold text-blue-800 mb-4 flex items-center gap-2"><Info size={20}/> ABET Student Outcomes</h3><div className="grid gap-4">{abetSOs.map(so => (<div key={so.id} className="p-4 bg-blue-50/50 rounded-lg border border-blue-100"><div className="flex items-center gap-3 mb-2"><span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">{so.id}</span><span className="font-bold text-slate-700">{so.title}</span></div><p className="text-sm text-slate-600">{so.description}</p></div>))}</div></div></div></div> );
-            const renderMapping = () => ( <div className="animate-fade-in"><SectionHeader title="Mapeamento" description="Vincule disciplinas." action={<button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium"><Upload size={16} /> Salvar GitHub</button>} /><div className="bg-white p-6 rounded-xl border border-slate-100 mb-8"><p className="text-slate-500">Use o formulário para adicionar novos vínculos.</p></div></div> );
-            const renderCatalog = () => ( <div className="animate-fade-in"><SectionHeader title="Base de Dados" description="Gerencie a fonte de dados." action={<Database size={24}/>} /><div className="bg-blue-50 border border-blue-200 rounded-xl p-8 text-center mb-8"><button onClick={() => fileInputRef.current.click()} className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold">Carregar Local</button><input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv" className="hidden" /></div></div> );
+            const renderMapping = () => ( <div className="animate-fade-in text-center"><SectionHeader title="Tutorial" description="Como atualizar os dados." action={<HelpCircle size={24} className="text-slate-400"/>} /><div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left"><div className="bg-white p-8 rounded-xl shadow-sm border border-slate-100"><h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2"><Edit3 size={20} className="text-unb-blue"/> Como Adicionar Novos Dados</h3><div className="space-y-6 relative before:absolute before:left-4 before:top-2 before:h-full before:w-0.5 before:bg-slate-200"><div className="relative pl-10"><div className="absolute left-0 top-0 w-8 h-8 bg-unb-blue text-white rounded-full flex items-center justify-center font-bold text-sm">1</div><h4 className="font-bold text-slate-800">Baixar a Base</h4><p className="text-sm text-slate-600 mt-1">Vá até a aba <span className="font-bold text-unb-blue">Base de Dados</span> e clique em "Exportar CSV Atual".</p></div><div className="relative pl-10"><div className="absolute left-0 top-0 w-8 h-8 bg-unb-blue text-white rounded-full flex items-center justify-center font-bold text-sm">2</div><h4 className="font-bold text-slate-800">Editar no Excel</h4><p className="text-sm text-slate-600 mt-1">Adicione novas linhas seguindo as colunas. Não altere o cabeçalho.</p></div><div className="relative pl-10"><div className="absolute left-0 top-0 w-8 h-8 bg-unb-blue text-white rounded-full flex items-center justify-center font-bold text-sm">3</div><h4 className="font-bold text-slate-800">Atualizar GitHub</h4><p className="text-sm text-slate-600 mt-1">Faça upload do arquivo <code>dados_oficiais.csv</code> no repositório.</p></div></div></div><div className="bg-slate-50 p-8 rounded-xl border border-dashed border-slate-300 flex flex-col justify-center items-center text-center"><Github size={48} className="text-slate-400 mb-4"/><h3 className="font-bold text-slate-700 mb-2">Acesso ao Repositório</h3><a href={REPO_URL} target="_blank" className="bg-slate-800 text-white px-6 py-3 rounded-lg font-bold hover:bg-slate-900 transition-colors flex items-center gap-2"><Github size={18}/> Ir para o GitHub</a></div></div></div> );
+            const renderCatalog = () => ( <div className="animate-fade-in text-center"><SectionHeader title="Base de Dados" description="Visualização bruta." action={<Database size={24} className="text-slate-400"/>} /><div className="flex justify-end mb-4"><button onClick={() => {const content=generateCSVContent(); const encoded=encodeURI("data:text/csv;charset=utf-8,"+content); const link=document.createElement("a"); link.href=encoded; link.download="dados_atuais.csv"; document.body.appendChild(link); link.click();}} className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 text-slate-600"><Download size={16}/> Exportar CSV Atual</button></div><div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden"><div className="overflow-x-auto max-h-[600px]"><table className="w-full text-sm text-left whitespace-nowrap"><thead className="bg-slate-50 text-slate-700 font-bold sticky top-0 shadow-sm"><tr><th className="p-4 border-b">ID Disciplina</th><th className="p-4 border-b">Nome</th><th className="p-4 border-b">PPC</th><th className="p-4 border-b">ABET</th><th className="p-4 border-b">Evidência</th></tr></thead><tbody className="divide-y divide-slate-100">{mappings.map(m => {const disc = disciplines.find(d => d.code === m.discipline); return (<tr key={m.id} className="hover:bg-slate-50 transition-colors"><td className="p-4 font-mono text-xs text-slate-500">{m.discipline}</td><td className="p-4 font-medium text-slate-800">{disc ? disc.name : 'Desconhecida'}</td><td className="p-4"><span className={`px-2 py-1 rounded text-xs ${m.ppc ? 'bg-green-100 text-green-700 font-bold' : 'text-slate-300'}`}>{m.ppc || '-'}</span></td><td className="p-4"><span className={`px-2 py-1 rounded text-xs ${m.abet ? 'bg-blue-100 text-blue-700 font-bold' : 'text-slate-300'}`}>{m.abet || '-'}</span></td><td className="p-4 text-slate-500 max-w-md truncate" title={m.evidence}>{m.evidence}</td></tr>);})}</tbody></table></div></div></div> );
+            const renderAbout = () => ( 
+                <div className="animate-fade-in max-w-4xl mx-auto text-center">
+                    <SectionHeader title="Referências" description="Definições oficiais." action={<BookOpen size={24} className="text-slate-400"/>} />
+                    <div className="space-y-8 text-left">
+                        <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-100">
+                            <h3 className="text-xl font-bold text-unb-blue mb-4 flex items-center gap-2"><Info size={20}/> ABET Student Outcomes</h3>
+                            <div className="grid gap-4">{abetSOs.map(so => (<div key={so.id} className="p-4 bg-blue-50/50 rounded-lg border border-blue-100"><div className="flex items-center gap-3 mb-2"><span className="bg-unb-blue text-white text-xs font-bold px-2 py-1 rounded">{so.id}</span><span className="font-bold text-slate-700">{so.title}</span></div><p className="text-sm text-slate-600">{so.description}</p></div>))}</div>
+                        </div>
+                        <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-100">
+                            <h3 className="text-xl font-bold text-unb-green mb-4 flex items-center gap-2"><Info size={20}/> Competências PPC UnB</h3>
+                            <div className="grid gap-4">{ppcCompetencies.map(ppc => (<div key={ppc.id} className="p-4 bg-green-50/50 rounded-lg border border-green-100"><div className="flex items-center gap-3 mb-2"><span className="bg-unb-green text-white text-xs font-bold px-2 py-1 rounded">{ppc.id}</span><span className="font-bold text-slate-700">{ppc.title}</span></div><p className="text-sm text-slate-600">{ppc.description}</p></div>))}</div>
+                        </div>
+                    </div>
+                </div> 
+            );
 
             return (
                 <div className="min-h-screen flex flex-col md:flex-row relative">
-                    {showModal && (<div className="fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4"><div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"><h3 className="text-lg font-bold mb-4">Salvar no GitHub</h3><input type="text" className="w-full border rounded p-2 mb-2 text-sm" placeholder="Usuário" value={ghConfig.owner} onChange={e => setGhConfig({...ghConfig, owner: e.target.value})} /><input type="text" className="w-full border rounded p-2 mb-2 text-sm" placeholder="Repositório" value={ghConfig.repo} onChange={e => setGhConfig({...ghConfig, repo: e.target.value})} /><input type="password" className="w-full border rounded p-2 mb-4 text-sm" placeholder="Token" value={ghConfig.token} onChange={e => setGhConfig({...ghConfig, token: e.target.value})} /><div className="flex gap-2"><button onClick={saveToGitHub} className="flex-1 bg-blue-600 text-white py-2 rounded">{syncStatus==='loading'?'Enviando...':'Confirmar'}</button><button onClick={()=>setShowModal(false)} className="flex-1 bg-slate-200 text-slate-700 py-2 rounded">Cancelar</button></div></div></div>)}
-                    <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex-shrink-0"><div className="p-6 border-b border-slate-100"><h1 className="text-xl font-bold text-blue-600 flex items-center gap-2"><div className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center text-sm">MC</div> Matriz UnB</h1><p className="text-xs text-slate-400 mt-1">Piloto Eng. Produção</p></div><nav className="p-4 space-y-1"><button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'dashboard' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}><LayoutDashboard size={18} /> Dashboard</button><button onClick={() => setActiveTab('mapping')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'mapping' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}><LinkIcon size={18} /> Mapeamento</button><button onClick={() => setActiveTab('advanced')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'advanced' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}><Network size={18} /> Visualizações (Adv)</button><button onClick={() => setActiveTab('analysis')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'analysis' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}><BarChart3 size={18} /> Análise</button><button onClick={() => setActiveTab('about')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'about' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}><BookOpen size={18} /> Referências</button><button onClick={() => setActiveTab('catalog')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'catalog' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}><Database size={18} /> Base de Dados</button></nav></aside>
-                    <main className="flex-1 p-8 overflow-y-auto">{activeTab === 'dashboard' && renderDashboard()}{activeTab === 'mapping' && renderMapping()}{activeTab === 'advanced' && renderAdvanced()}{activeTab === 'analysis' && renderAnalysis()}{activeTab === 'about' && renderAbout()}{activeTab === 'catalog' && renderCatalog()}</main>
+                    {showModal && (<div className="fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4"><div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"><h3 className="text-lg font-bold mb-4">Salvar no GitHub</h3><input type="text" className="w-full border rounded p-2 mb-2 text-sm" placeholder="Usuário" value={ghConfig.owner} onChange={e => setGhConfig({...ghConfig, owner: e.target.value})} /><input type="text" className="w-full border rounded p-2 mb-2 text-sm" placeholder="Repositório" value={ghConfig.repo} onChange={e => setGhConfig({...ghConfig, repo: e.target.value})} /><input type="password" className="w-full border rounded p-2 mb-4 text-sm" placeholder="Token" value={ghConfig.token} onChange={e => setGhConfig({...ghConfig, token: e.target.value})} /><div className="flex gap-2"><button onClick={saveToGitHub} className="flex-1 bg-unb-blue text-white py-2 rounded">{syncStatus==='loading'?'Enviando...':'Confirmar'}</button><button onClick={()=>setShowModal(false)} className="flex-1 bg-slate-200 text-slate-700 py-2 rounded">Cancelar</button></div></div></div>)}
+                    <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex-shrink-0 flex flex-col">
+                        <div className="p-6 border-b border-slate-100 text-center">
+                            <img src={UNB_LOGO_URL} alt="UnB Logo" className="h-20 mx-auto mb-4 object-contain"/>
+                            <h1 className="text-sm font-bold text-unb-blue">InterEPRUnB</h1>
+                            <p className="text-xs text-slate-400 mt-1 leading-tight">Matriz de componentes internacionais e requisitos cumpridos</p>
+                        </div>
+                        <nav className="p-4 space-y-1 flex-1">
+                            <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'dashboard' ? 'bg-blue-50 text-unb-blue' : 'text-slate-600 hover:bg-slate-50'}`}><LayoutDashboard size={18} /> Dashboard</button>
+                            <button onClick={() => setActiveTab('advanced')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'advanced' ? 'bg-blue-50 text-unb-blue' : 'text-slate-600 hover:bg-slate-50'}`}><Network size={18} /> Visualizações</button>
+                            <button onClick={() => setActiveTab('analysis')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'analysis' ? 'bg-blue-50 text-unb-blue' : 'text-slate-600 hover:bg-slate-50'}`}><BarChart3 size={18} /> Análise</button>
+                            <button onClick={() => setActiveTab('catalog')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'catalog' ? 'bg-blue-50 text-unb-blue' : 'text-slate-600 hover:bg-slate-50'}`}><Database size={18} /> Base de Dados</button>
+                            <button onClick={() => setActiveTab('mapping')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'mapping' ? 'bg-blue-50 text-unb-blue' : 'text-slate-600 hover:bg-slate-50'}`}><HelpCircle size={18} /> Tutorial</button>
+                            <button onClick={() => setActiveTab('about')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'about' ? 'bg-blue-50 text-unb-blue' : 'text-slate-600 hover:bg-slate-50'}`}><BookOpen size={18} /> Referências</button>
+                        </nav>
+                        <div className="p-6 border-t border-slate-100 bg-slate-50">
+                            <h4 className="text-xs font-bold text-unb-blue mb-3 flex items-center gap-2"><Users size={12}/> Equipe do Projeto</h4>
+                            <ul className="text-[10px] text-slate-500 space-y-2 mb-4">
+                                <li>Arthur de Ávila - 221020950</li>
+                                <li>Bruno Sérgio - 190052473</li>
+                                <li>Cristiano Alves - 222005368</li>
+                                <li>Vitor Alves - 221006647</li>
+                                <li>Gabriel Brum - 221006520</li>
+                            </ul>
+                            <a href={REPO_URL} target="_blank" className="flex items-center justify-center gap-2 text-xs text-unb-blue hover:underline pt-2 border-t border-slate-200 w-full">
+                                <Github size={12} /> Repositório GitHub
+                            </a>
+                        </div>
+                    </aside>
+                    <main className="flex-1 p-8 overflow-y-auto bg-white/50">{activeTab === 'dashboard' && renderDashboard()}{activeTab === 'mapping' && renderMapping()}{activeTab === 'advanced' && renderAdvanced()}{activeTab === 'analysis' && renderAnalysis()}{activeTab === 'about' && renderAbout()}{activeTab === 'catalog' && renderCatalog()}</main>
                 </div>
             );
         }
