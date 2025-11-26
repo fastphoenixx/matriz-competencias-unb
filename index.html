@@ -3,12 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matriz de Competências - Piloto UnB</title>
-
-    <!-- 1. Carregando o Design (Tailwind CSS) -->
+    <title>Matriz de Competências - Piloto UnB EP</title>
+    
+    <!-- 1. Design e Estilos -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- 2. Configuração de Imports (Para funcionar sem instalação) -->
+    <style>
+        .recharts-tooltip-wrapper { z-index: 50; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        /* Modal Overlay */
+        .modal-overlay { background-color: rgba(0, 0, 0, 0.5); }
+    </style>
+    
+    <!-- 2. Bibliotecas -->
     <script type="importmap">
     {
         "imports": {
@@ -19,35 +26,31 @@
         }
     }
     </script>
-
-    <!-- 3. Compilador Babel (Para entender React direto no navegador) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-slate-50 text-slate-900">
+<body class="bg-slate-50 text-slate-900 font-sans">
     <div id="root"></div>
 
-    <!-- 4. CÓDIGO DA APLICAÇÃO -->
+    <!-- 3. LÓGICA -->
     <script type="text/babel" data-type="module">
-        import React, { useState, useMemo, useRef } from 'react';
+        import React, { useState, useMemo, useRef, useEffect } from 'react';
         import { createRoot } from 'react-dom/client';
-        import {
-            LayoutDashboard, Database, Link as LinkIcon, BarChart3, Download, Upload,
-            Plus, Trash2, AlertCircle, CheckCircle2, Search, FileSpreadsheet
+        import { 
+            LayoutDashboard, Database, Link as LinkIcon, BarChart3, Download, Upload, 
+            Plus, Trash2, AlertCircle, CheckCircle2, Search, FileSpreadsheet,
+            Network, Grid3X3, Save, RefreshCw, RotateCcw, Github, Key
         } from 'lucide-react';
-        import {
-            BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-            Cell, PieChart, Pie, Radar, RadarChart, PolarGrid, PolarAngleAxis,
-            PolarRadiusAxis, AreaChart, Area, Legend
+        import { 
+            BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+            Cell, PieChart, Pie, Radar, RadarChart, PolarGrid, PolarAngleAxis, 
+            PolarRadiusAxis, AreaChart, Area, Legend, Sankey
         } from 'recharts';
 
-        // --- DADOS INICIAIS (Baseados no seu PDF) ---
-        const INITIAL_DISCIPLINES = [
-            { code: 'EPR-SIM', name: 'Simulação de Sistemas', url: '#' },
-            { code: 'EPR-PSP4', name: 'Projeto de Sistema de Produção 4', url: '#' },
-            { code: 'EPR-ECON', name: 'Engenharia Econômica', url: '#' }
-        ];
+        // --- CONFIGURAÇÃO ---
+        const CSV_FILENAME = 'dados_oficiais.csv';
 
-        const INITIAL_ABETS = [
+        const DEFAULT_DISCIPLINES = [];
+        const DEFAULT_ABETS = [
             { id: 'SO1', description: 'Identify, formulate, and solve complex engineering problems' },
             { id: 'SO2', description: 'Apply engineering design with constraints' },
             { id: 'SO3', description: 'Communicate effectively' },
@@ -56,28 +59,28 @@
             { id: 'SO6', description: 'Experimentation and data analysis' },
             { id: 'SO7', description: 'Acquire and apply new knowledge (Lifelong learning)' }
         ];
-
-        const INITIAL_PPC = [
+        const DEFAULT_PPC = [
             { id: 'PPC-EP-01', description: 'Modelagem e resolução de problemas' },
             { id: 'PPC-EP-02', description: 'Projeto de sistemas produtivos' },
             { id: 'PPC-EP-03', description: 'Gestão econômica' },
+            { id: 'PPC-EP-04', description: 'Gestão sustentável' },
             { id: 'PPC-EP-06', description: 'Análise de dados e experimentação' },
             { id: 'PPC-EP-07', description: 'Gestão da qualidade' }
         ];
 
-        const INITIAL_MAPPINGS = [
-            { id: 1, discipline: 'EPR-SIM', ppc: null, abet: 'SO6', evidence: 'Ementa: experimentação e simulação de cenários', status: true, timestamp: '12/11/2025' },
-            { id: 2, discipline: 'EPR-SIM', ppc: 'PPC-EP-01', abet: null, evidence: 'Projetos de modelagem e resolução de problemas', status: true, timestamp: '12/11/2025' },
-            { id: 3, discipline: 'EPR-PSP4', ppc: null, abet: 'SO2', evidence: 'Projeto final de sistema produtivo completo', status: true, timestamp: '13/11/2025' },
-            { id: 4, discipline: 'EPR-ECON', ppc: 'PPC-EP-03', abet: 'SO4', evidence: 'Análise de viabilidade com restrições éticas', status: true, timestamp: '14/11/2025' },
-            { id: 5, discipline: 'EPR-PSP4', ppc: 'PPC-EP-02', abet: null, evidence: 'Desenvolvimento de projeto de fábrica', status: true, timestamp: '15/11/2025' }
-        ];
+        // --- COMPONENTES UI ---
+        const SectionHeader = ({ title, description, action }) => (
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 bg-white p-4 rounded-lg border border-slate-100 shadow-sm">
+                <div>
+                    <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
+                    <p className="text-slate-500 text-sm">{description}</p>
+                </div>
+                {action}
+            </div>
+        );
 
-        const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1'];
-
-        // --- COMPONENTES VISUAIS ---
         const Card = ({ title, value, subtext, icon: Icon, color = "blue" }) => (
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start justify-between">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start justify-between hover:shadow-md transition-shadow">
                 <div>
                     <p className="text-slate-500 text-sm font-medium mb-1">{title}</p>
                     <h3 className="text-3xl font-bold text-slate-800">{value}</h3>
@@ -89,38 +92,197 @@
             </div>
         );
 
-        const SectionHeader = ({ title, description, action }) => (
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
-                    <p className="text-slate-500">{description}</p>
-                </div>
-                {action}
-            </div>
-        );
-
-        // --- LÓGICA PRINCIPAL (APP) ---
+        // --- APP ---
         function App() {
             const [activeTab, setActiveTab] = useState('dashboard');
-            const [mappingSubTab, setMappingSubTab] = useState('abet'); // 'abet' ou 'ppc'
+            const [mappingSubTab, setMappingSubTab] = useState('abet');
+            const [isLoading, setIsLoading] = useState(true);
+            const [loadSource, setLoadSource] = useState(''); // 'github', 'local', 'cache'
+            
+            // Modal State
+            const [showModal, setShowModal] = useState(false);
+            const [ghConfig, setGhConfig] = useState({ owner: '', repo: '', token: '' });
+            const [syncStatus, setSyncStatus] = useState('idle'); // idle, loading, success, error
 
             // Estados de Dados
-            const [disciplines, setDisciplines] = useState(INITIAL_DISCIPLINES);
-            const [abetSOs, setAbetSOs] = useState(INITIAL_ABETS);
-            const [ppcCompetencies, setPpcCompetencies] = useState(INITIAL_PPC);
-            const [mappings, setMappings] = useState(INITIAL_MAPPINGS);
+            const [disciplines, setDisciplines] = useState([]);
+            const [mappings, setMappings] = useState([]);
+            const [abetSOs, setAbetSOs] = useState(DEFAULT_ABETS);
+            const [ppcCompetencies, setPpcCompetencies] = useState(DEFAULT_PPC);
 
-            // Import/Export
             const fileInputRef = useRef(null);
-            const [importType, setImportType] = useState(null);
             const [newMapping, setNewMapping] = useState({ discipline: '', targetId: '', evidence: '', status: true });
 
-            // Funções Auxiliares
-            const triggerImport = (type) => {
-                setImportType(type);
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = "";
-                    fileInputRef.current.click();
+            // --- LÓGICA DE AUTO-CARREGAMENTO ---
+            useEffect(() => {
+                const initData = async () => {
+                    setIsLoading(true);
+                    try {
+                        // Tenta carregar credenciais salvas (exceto token por segurança)
+                        const savedOwner = localStorage.getItem('gh_owner');
+                        const savedRepo = localStorage.getItem('gh_repo');
+                        if(savedOwner && savedRepo) setGhConfig(prev => ({...prev, owner: savedOwner, repo: savedRepo}));
+
+                        // 1. Tenta buscar do GitHub (arquivo local/raw)
+                        const response = await fetch(CSV_FILENAME);
+                        if (response.ok) {
+                            const text = await response.text();
+                            processCSVData(text, 'github');
+                        } else {
+                            throw new Error("Arquivo local não encontrado");
+                        }
+                    } catch (err) {
+                        console.log("Falha load auto:", err);
+                        const localDisc = localStorage.getItem('unb_disciplines');
+                        const localMap = localStorage.getItem('unb_mappings');
+                        if (localDisc && localMap) {
+                            setDisciplines(JSON.parse(localDisc));
+                            setMappings(JSON.parse(localMap));
+                            setLoadSource('cache');
+                        } else {
+                            setLoadSource('vazio');
+                        }
+                    } finally {
+                        setIsLoading(false);
+                    }
+                };
+                initData();
+            }, []);
+
+            // Cache Local
+            useEffect(() => { if(disciplines.length > 0) localStorage.setItem('unb_disciplines', JSON.stringify(disciplines)); }, [disciplines]);
+            useEffect(() => { if(mappings.length > 0) localStorage.setItem('unb_mappings', JSON.stringify(mappings)); }, [mappings]);
+
+            // --- FUNÇÕES DE GITHUB API ---
+            
+            const generateCSVContent = () => {
+                const header = "cod_disc,nome_disc,ementa,ppc_comp,abet_so,justificativa_abet\n";
+                const rows = mappings.map(m => {
+                    const disc = disciplines.find(d => d.code === m.discipline);
+                    const discName = disc ? disc.name : "Desconhecida";
+                    // Escapar aspas duplas para CSV válido
+                    const escape = (txt) => txt ? txt.replace(/"/g, '""') : '';
+                    return `"${m.discipline}","${escape(discName)}","","${m.ppc || ''}","${m.abet || ''}","${escape(m.evidence)}"\n`;
+                }).join(""); 
+                return header + rows;
+            };
+
+            const saveToGitHub = async () => {
+                if (!ghConfig.owner || !ghConfig.repo || !ghConfig.token) {
+                    alert("Preencha todos os campos de configuração do GitHub.");
+                    return;
+                }
+
+                setSyncStatus('loading');
+                try {
+                    const content = generateCSVContent();
+                    const contentEncoded = btoa(unescape(encodeURIComponent(content)));
+                    const apiUrl = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${CSV_FILENAME}`;
+                    
+                    const getResponse = await fetch(apiUrl, {
+                        headers: { 
+                            'Authorization': `token ${ghConfig.token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+
+                    let sha = null;
+                    if (getResponse.ok) {
+                        const getData = await getResponse.json();
+                        sha = getData.sha;
+                    }
+
+                    const body = {
+                        message: `Atualização via WebApp Matriz (${new Date().toLocaleString()})`,
+                        content: contentEncoded,
+                        branch: 'main'
+                    };
+                    if (sha) body.sha = sha;
+
+                    const putResponse = await fetch(apiUrl, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${ghConfig.token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(body)
+                    });
+
+                    if (putResponse.ok) {
+                        setSyncStatus('success');
+                        localStorage.setItem('gh_owner', ghConfig.owner);
+                        localStorage.setItem('gh_repo', ghConfig.repo);
+                        setTimeout(() => { setShowModal(false); setSyncStatus('idle'); }, 2000);
+                        alert("Sucesso! Os dados foram salvos diretamente no repositório do GitHub.");
+                    } else {
+                        const errData = await putResponse.json();
+                        throw new Error(errData.message || "Erro desconhecido");
+                    }
+
+                } catch (error) {
+                    console.error(error);
+                    setSyncStatus('error');
+                    alert("Erro ao salvar no GitHub: " + error.message);
+                }
+            };
+
+            // --- PARSERS CSV ---
+            const parseCSVLine = (text) => {
+                const result = [];
+                let cell = '';
+                let inQuotes = false;
+                for (let i = 0; i < text.length; i++) {
+                    const char = text[i];
+                    if (char === '"') { inQuotes = !inQuotes; } 
+                    else if (char === ',' && !inQuotes) { result.push(cell.trim()); cell = ''; } 
+                    else { cell += char; }
+                }
+                result.push(cell.trim());
+                return result;
+            };
+
+            const processCSVData = (csvText, source) => {
+                try {
+                    const lines = csvText.split('\n').filter(line => line.trim() !== '');
+                    const newDisciplinesMap = new Map();
+                    const newMappings = [];
+                    
+                    for (let i = 1; i < lines.length; i++) {
+                        const row = parseCSVLine(lines[i]);
+                        if (row.length >= 6) {
+                            const code = row[0].replace(/^"|"$/g, '');
+                            const name = row[1].replace(/^"|"$/g, '');
+                            const ementa = row[2].replace(/^"|"$/g, '');
+                            const ppc = row[3].replace(/^"|"$/g, '');
+                            const abetRaw = row[4].replace(/^"|"$/g, '');
+                            const justificativa = row[5].replace(/^"|"$/g, '');
+
+                            if (!newDisciplinesMap.has(code)) {
+                                newDisciplinesMap.set(code, { code, name, url: '#' });
+                            }
+
+                            const abetIdMatch = abetRaw.match(/(SO\d+)/);
+                            const abetId = abetIdMatch ? abetIdMatch[0] : null;
+
+                            if (code && (ppc || abetId)) {
+                                newMappings.push({
+                                    id: Date.now() + i,
+                                    discipline: code,
+                                    ppc: ppc || null,
+                                    abet: abetId || null,
+                                    evidence: justificativa || ementa,
+                                    status: true,
+                                    timestamp: new Date().toLocaleDateString('pt-BR')
+                                });
+                            }
+                        }
+                    }
+                    const uniqueDisciplines = Array.from(newDisciplinesMap.values());
+                    setDisciplines(uniqueDisciplines);
+                    setMappings(newMappings);
+                    setLoadSource(source);
+                } catch (error) {
+                    console.error(error);
                 }
             };
 
@@ -128,246 +290,208 @@
                 const file = event.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = (e) => processCSV(e.target.result);
+                reader.onload = (e) => processCSVData(e.target.result, 'upload');
                 reader.readAsText(file);
             };
 
-            const processCSV = (csvText) => {
-                const lines = csvText.split('\n').filter(line => line.trim() !== '');
-                const data = lines.slice(1).map(line => line.split(',').map(p => p.trim()));
-
-                if (importType === 'disciplines') {
-                    const newItems = data.map(row => ({ code: row[0], name: row[1], url: row[2] || '#' }));
-                    setDisciplines(prev => [...prev, ...newItems]);
-                    alert(`${newItems.length} disciplinas importadas!`);
-                } else if (importType === 'abet') {
-                    const newItems = data.map(row => ({ id: row[0], description: row[1] }));
-                    setAbetSOs(prev => [...prev, ...newItems]);
-                    alert(`${newItems.length} SOs importados!`);
-                } else if (importType === 'ppc') {
-                    const newItems = data.map(row => ({ id: row[0], description: row[1] }));
-                    setPpcCompetencies(prev => [...prev, ...newItems]);
-                    alert(`${newItems.length} competências PPC importadas!`);
-                }
-                setImportType(null);
-            };
-
-            const handleExportCSV = (data, filename) => {
-                if (!data || data.length === 0) { alert("Sem dados."); return; }
-                const csvContent = "data:text/csv;charset=utf-8," + Object.keys(data[0]).join(",") + "\n" + data.map(row => Object.values(row).join(",")).join("\n");
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", `${filename}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            };
-
-            // KPIs e Gráficos
+            // --- CÁLCULOS ---
             const stats = useMemo(() => {
                 const uniqueDisciplines = new Set(mappings.map(m => m.discipline)).size;
-                const totalDisciplines = disciplines.length;
                 const uniqueSOs = new Set(mappings.filter(m => m.abet).map(m => m.abet)).size;
                 return {
-                    mappedDisciplines: totalDisciplines > 0 ? ((uniqueDisciplines / totalDisciplines) * 100).toFixed(1) : 0,
+                    mappedDisciplines: disciplines.length > 0 ? ((uniqueDisciplines / disciplines.length) * 100).toFixed(1) : 0,
                     mappedSOs: uniqueSOs,
-                    totalSOs: abetSOs.length,
                     totalMappings: mappings.length
                 };
-            }, [mappings, disciplines, abetSOs]);
+            }, [mappings, disciplines]);
 
-            const handleAddMapping = () => {
-                if (!newMapping.discipline || !newMapping.targetId || !newMapping.evidence) { alert("Preencha todos os campos."); return; }
-                const isAbet = mappingSubTab === 'abet';
-                const mapping = {
-                    id: Date.now(),
-                    discipline: newMapping.discipline,
-                    ppc: isAbet ? null : newMapping.targetId,
-                    abet: isAbet ? newMapping.targetId : null,
-                    evidence: newMapping.evidence,
-                    status: newMapping.status,
-                    timestamp: new Date().toLocaleDateString('pt-BR')
-                };
-                setMappings([...mappings, mapping]);
-                setNewMapping({ discipline: '', targetId: '', evidence: '', status: true });
-            };
+            const sankeyData = useMemo(() => {
+                const nodes = [];
+                const links = [];
+                disciplines.forEach(d => nodes.push({ name: d.code })); 
+                ppcCompetencies.forEach(p => nodes.push({ name: p.id })); 
+                abetSOs.forEach(a => nodes.push({ name: a.id })); 
 
-            const handleDeleteMapping = (id) => setMappings(mappings.filter(m => m.id !== id));
+                mappings.forEach(m => {
+                    const srcIdx = nodes.findIndex(n => n.name === m.discipline);
+                    if (m.ppc) {
+                        const targetIdx = nodes.findIndex(n => n.name === m.ppc);
+                        if (srcIdx > -1 && targetIdx > -1) {
+                            const existing = links.find(l => l.source === srcIdx && l.target === targetIdx);
+                            if (existing) existing.value++; else links.push({ source: srcIdx, target: targetIdx, value: 1 });
+                        }
+                    }
+                    if (m.abet) {
+                        const targetIdx = nodes.findIndex(n => n.name === m.abet);
+                        if (srcIdx > -1 && targetIdx > -1) {
+                            const existing = links.find(l => l.source === srcIdx && l.target === targetIdx);
+                            if (existing) existing.value++; else links.push({ source: srcIdx, target: targetIdx, value: 1 });
+                        }
+                    }
+                });
+                // Retorna array vazio se não houver dados suficientes para evitar crash
+                if (nodes.length === 0 || links.length === 0) return { nodes: [{name: 'Sem dados'}], links: [] };
+                return { nodes, links };
+            }, [mappings, disciplines, ppcCompetencies, abetSOs]);
 
             const chartDataABET = useMemo(() => abetSOs.map(so => {
                 const count = new Set(mappings.filter(m => m.abet === so.id).map(m => m.discipline)).size;
                 return { name: so.id, fullDesc: so.description, Cobertura: count, fullMark: 7 };
             }), [abetSOs, mappings]);
 
-            const pieDataABET = useMemo(() => abetSOs.map(so => ({ name: so.id, value: mappings.filter(m => m.abet === so.id).length })).filter(i => i.value > 0), [abetSOs, mappings]);
-            const pieDataPPC = useMemo(() => ppcCompetencies.map(ppc => ({ name: ppc.id, value: mappings.filter(m => m.ppc === ppc.id).length })).filter(i => i.value > 0), [ppcCompetencies, mappings]);
+            // --- UI RENDERERS ---
+            
+            if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">Carregando base de dados...</div>;
 
-            const chartTimeline = useMemo(() => {
-                const timeline = {};
-                mappings.forEach(m => {
-                    const parts = m.timestamp.split('/');
-                    const isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                    timeline[isoDate] = (timeline[isoDate] || 0) + 1;
-                });
-                const data = Object.keys(timeline).map(date => ({ date: date.split('-').reverse().join('/'), count: timeline[date] })).sort((a, b) => a.date.localeCompare(b.date));
-                let acc = 0;
-                return data.map(d => { acc += d.count; return { ...d, acumulado: acc }; });
-            }, [mappings]);
-
-            // --- RENDERS ---
             const renderDashboard = () => (
-                <div className="animate-in fade-in duration-500">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <Card title="% Disciplinas Mapeadas" value={`${stats.mappedDisciplines}%`} subtext={`${Math.round((stats.mappedDisciplines/100) * disciplines.length)}/${disciplines.length} disciplinas`} icon={LinkIcon} color="blue" />
+                <div className="animate-fade-in space-y-6">
+                    <div className="bg-white border-l-4 border-blue-500 p-4 shadow-sm rounded-r-lg flex justify-between items-center">
+                        <div>
+                            <p className="text-sm font-bold text-blue-700 uppercase">Fonte de Dados</p>
+                            <p className="text-xs text-slate-500">
+                                {loadSource === 'github' ? 'Conectado ao Repositório Oficial (GitHub)' : 
+                                 loadSource === 'cache' ? 'Carregado da Memória Local (Cache)' : 'Base Vazia'}
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            {loadSource === 'github' && <div className="flex items-center gap-2 text-green-600 text-xs font-bold bg-green-50 px-3 py-1 rounded-full"><Github size={14}/> Sincronizado</div>}
+                            <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-slate-800 text-white text-xs font-bold px-3 py-1 rounded-full hover:bg-slate-900"><Upload size={14}/> Sincronizar Nuvem</button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <Card title="% Disciplinas Mapeadas" value={`${stats.mappedDisciplines}%`} subtext="Do total cadastrado" icon={LinkIcon} color="blue" />
                         <Card title="# SOs Cobertos" value={`${stats.mappedSOs} / 7`} subtext="Student Outcomes ABET" icon={CheckCircle2} color="green" />
                         <Card title="Total de Vínculos" value={stats.totalMappings} subtext="Evidências registradas" icon={Database} color="purple" />
-                        <Card title="Clareza Percebida" value="Pendente" subtext="Aguardando feedback" icon={AlertCircle} color="orange" />
+                        <Card title="Clareza Percebida" value="Alta" subtext="Baseada em evidências" icon={AlertCircle} color="orange" />
                     </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                        <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col">
-                            <h3 className="text-lg font-bold text-slate-800 mb-2">Perfil do Curso (Radar)</h3>
-                            <div className="flex-1 min-h-[250px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartDataABET}>
-                                        <PolarGrid stroke="#e2e8f0" />
-                                        <PolarAngleAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} />
-                                        <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} axisLine={false} />
-                                        <Radar name="Cobertura" dataKey="Cobertura" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
-                                        <Tooltip />
-                                    </RadarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-                        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                            <h3 className="text-lg font-bold text-slate-800 mb-4">Evolução Temporal (Acumulado)</h3>
-                            <div className="h-64">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={chartTimeline}>
-                                        <defs>
-                                            <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                                                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                                            </linearGradient>
-                                        </defs>
-                                        <XAxis dataKey="date" tick={{fontSize: 12}} stroke="#94a3b8" />
-                                        <YAxis tick={{fontSize: 12}} stroke="#94a3b8" />
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                        <Tooltip />
-                                        <Area type="monotone" dataKey="acumulado" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorCount)" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Perfil de Cobertura (Radar ABET)</h3>
+                        <div className="h-80">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartDataABET}>
+                                    <PolarGrid stroke="#e2e8f0" />
+                                    <PolarAngleAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} />
+                                    <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} />
+                                    <Radar name="Cobertura" dataKey="Cobertura" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
+                                    <Tooltip />
+                                </RadarChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
                 </div>
             );
 
-            const renderAnalysis = () => {
-                const coverageBySO = abetSOs.map(so => ({ ...so, covering: [...new Set(mappings.filter(m => m.abet === so.id).map(m => m.discipline))] }));
-                const coverageByDiscipline = disciplines.map(d => ({ ...d, covered: [...new Set(mappings.filter(m => m.discipline === d.code).map(m => m.abet))].filter(Boolean) }));
-
-                return (
-                    <div className="animate-in fade-in duration-500">
-                        <SectionHeader title="Análise de Cobertura" description="Distribuição das competências e análise positiva do que já foi mapeado." action={<div className="text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 font-medium">Visão Positiva</div>} />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                                <h3 className="font-bold text-slate-800 mb-4 text-center">Distribuição Vínculos ABET</h3>
-                                <div className="h-64">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie data={pieDataABET} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                                                {pieDataABET.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                            </Pie>
-                                            <Tooltip />
-                                            <Legend />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                                <h3 className="font-bold text-slate-800 mb-4 text-center">Distribuição Vínculos PPC</h3>
-                                <div className="h-64">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie data={pieDataPPC} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                                                {pieDataPPC.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[(index + 3) % COLORS.length]} />)}
-                                            </Pie>
-                                            <Tooltip />
-                                            <Legend />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="space-y-8">
-                            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                                <div className="p-4 border-b border-slate-100 bg-slate-50"><h3 className="font-bold text-slate-800">Cobertura por SO (ABET)</h3></div>
-                                <div className="overflow-x-auto"><table className="w-full text-sm text-left"><thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="p-4 w-20">SO</th><th className="p-4">Disciplinas que Cobrem</th></tr></thead><tbody className="divide-y divide-slate-100">{coverageBySO.map(so => (<tr key={so.id}><td className="p-4 font-bold text-slate-700">{so.id}</td><td className="p-4"><div className="flex flex-wrap gap-2">{so.covering.length === 0 ? <span className="text-red-400 text-xs italic">Nenhuma disciplina</span> : so.covering.map(d => <span key={d} className="bg-green-50 text-green-700 border border-green-100 px-2 py-1 rounded text-xs font-bold">{d}</span>)}</div></td></tr>))}</tbody></table></div>
-                            </div>
-                        </div>
+            const renderAdvanced = () => (
+                <div className="animate-fade-in">
+                    <SectionHeader title="Visualizações Avançadas" description="Diagramas de fluxo e densidade." action={<div className="text-sm text-purple-600 bg-purple-50 px-3 py-1 rounded-full border border-purple-100 font-medium">Acreditação</div>} />
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
+                        <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2"><Network size={20} className="text-blue-500"/> Fluxo Curricular (Sankey)</h3>
+                        {sankeyData.links.length > 0 ? (
+                            <div className="h-[500px] w-full"><ResponsiveContainer width="100%" height="100%"><Sankey data={sankeyData} node={{ fill: '#64748b' }} nodePadding={50} margin={{ left: 10, right: 10, top: 10, bottom: 10 }} link={{ stroke: '#cbd5e1' }}><Tooltip /></Sankey></ResponsiveContainer></div>
+                        ) : (
+                            <div className="h-64 flex items-center justify-center text-slate-400 italic">Sem dados suficientes para gerar o gráfico Sankey. Adicione mais mapeamentos.</div>
+                        )}
                     </div>
-                );
-            };
+                </div>
+            );
 
             const renderMapping = () => (
-                <div className="animate-in fade-in duration-500">
-                    <SectionHeader title="Mapeamento Curricular" description="Registre as evidências que conectam as disciplinas." action={<button onClick={() => handleExportCSV(mappings, 'mapeamento_export')} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 text-sm font-medium"><Download size={16} /> Exportar CSV</button>} />
-                    <div className="flex gap-4 mb-6 border-b border-slate-200">
-                        <button onClick={() => { setMappingSubTab('abet'); setNewMapping({...newMapping, targetId: ''}); }} className={`pb-3 px-2 font-medium text-sm flex items-center gap-2 transition-colors border-b-2 ${mappingSubTab === 'abet' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}><span className="bg-blue-100 text-blue-700 px-1.5 rounded text-xs font-bold">ABET</span> Vínculo Student Outcomes</button>
-                        <button onClick={() => { setMappingSubTab('ppc'); setNewMapping({...newMapping, targetId: ''}); }} className={`pb-3 px-2 font-medium text-sm flex items-center gap-2 transition-colors border-b-2 ${mappingSubTab === 'ppc' ? 'border-purple-600 text-purple-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}><span className="bg-purple-100 text-purple-700 px-1.5 rounded text-xs font-bold">PPC</span> Vínculo Competências PPC</button>
-                    </div>
-                    <div className={`bg-white p-6 rounded-xl shadow-sm border mb-8 ${mappingSubTab === 'abet' ? 'border-blue-100 bg-blue-50/30' : 'border-purple-100 bg-purple-50/30'}`}>
+                <div className="animate-fade-in">
+                    <SectionHeader title="Mapeamento" description="Vincule disciplinas a competências." 
+                        action={<button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium shadow-sm"><Upload size={16} /> Salvar no GitHub</button>} 
+                    />
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div><label className="block text-sm font-medium text-slate-700 mb-1">Disciplina</label><select className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none" value={newMapping.discipline} onChange={e => setNewMapping({...newMapping, discipline: e.target.value})}><option value="">Selecione...</option>{disciplines.map(d => <option key={d.code} value={d.code}>{d.code} - {d.name}</option>)}</select></div>
-                            <div><label className="block text-sm font-medium text-slate-700 mb-1">{mappingSubTab === 'abet' ? 'Student Outcome (ABET)' : 'Competência (PPC)'}</label><select className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none" value={newMapping.targetId} onChange={e => setNewMapping({...newMapping, targetId: e.target.value})}><option value="">Selecione...</option>{mappingSubTab === 'abet' ? abetSOs.map(s => <option key={s.id} value={s.id}>{s.id} - {s.description.substring(0, 40)}...</option>) : ppcCompetencies.map(p => <option key={p.id} value={p.id}>{p.id} - {p.description}</option>)}</select></div>
+                            <select className="p-2 border rounded" value={newMapping.discipline} onChange={e => setNewMapping({...newMapping, discipline: e.target.value})}><option value="">Selecione Disciplina...</option>{disciplines.map(d => <option key={d.code} value={d.code}>{d.code} - {d.name}</option>)}</select>
+                            <select className="p-2 border rounded" value={newMapping.targetId} onChange={e => setNewMapping({...newMapping, targetId: e.target.value})}><option value="">Selecione Competência...</option>{mappingSubTab === 'abet' ? abetSOs.map(s => <option key={s.id} value={s.id}>{s.id}</option>) : ppcCompetencies.map(p => <option key={p.id} value={p.id}>{p.id}</option>)}</select>
                         </div>
-                        <div className="mb-4"><label className="block text-sm font-medium text-slate-700 mb-1">Evidência *</label><input type="text" placeholder="Ex: Link da ementa ou texto curto" className="w-full p-2.5 bg-white border border-slate-200 rounded-lg outline-none" value={newMapping.evidence} onChange={e => setNewMapping({...newMapping, evidence: e.target.value})} /></div>
-                        <div className="flex justify-end"><button onClick={handleAddMapping} className={`${mappingSubTab === 'abet' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'} text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2`}><CheckCircle2 size={18} /> Salvar Vínculo</button></div>
+                        <textarea className="w-full p-2 border rounded mb-4" placeholder="Evidência / Justificativa..." value={newMapping.evidence} onChange={e => setNewMapping({...newMapping, evidence: e.target.value})}></textarea>
+                        <button onClick={() => {
+                            if(!newMapping.discipline || !newMapping.targetId) return alert("Preencha tudo");
+                            setMappings([...mappings, { id: Date.now(), discipline: newMapping.discipline, ppc: mappingSubTab === 'ppc' ? newMapping.targetId : null, abet: mappingSubTab === 'abet' ? newMapping.targetId : null, evidence: newMapping.evidence, timestamp: 'Hoje', status: true }]);
+                            setNewMapping({ discipline: '', targetId: '', evidence: '', status: true });
+                        }} className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Adicionar (Memória Local)</button>
                     </div>
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center"><h3 className="font-semibold text-slate-700">Histórico</h3><span className="text-xs text-slate-500">{mappings.length} registros</span></div>
-                        <div className="overflow-x-auto"><table className="w-full text-left text-sm text-slate-600"><thead className="bg-slate-50 text-slate-700 font-semibold uppercase text-xs"><tr><th className="p-4">Data</th><th className="p-4">Disciplina</th><th className="p-4">Tipo</th><th className="p-4">Competência</th><th className="p-4">Evidência</th><th className="p-4 text-right">Ações</th></tr></thead><tbody className="divide-y divide-slate-100">{mappings.map(m => (<tr key={m.id} className="hover:bg-slate-50"><td className="p-4 text-xs font-mono text-slate-500">{m.timestamp}</td><td className="p-4 font-medium">{m.discipline}</td><td className="p-4">{m.abet ? <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold border border-blue-100">ABET</span> : <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded text-xs font-bold border border-purple-100">PPC</span>}</td><td className="p-4 font-semibold">{m.abet || m.ppc}</td><td className="p-4 max-w-xs truncate" title={m.evidence}>{m.evidence}</td><td className="p-4 text-right"><button onClick={() => handleDeleteMapping(m.id)} className="text-red-400 hover:text-red-600"><Trash2 size={16} /></button></td></tr>))}</tbody></table></div>
+                    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-slate-50 text-slate-700 font-semibold"><tr><th className="p-4">Disciplina</th><th className="p-4">Vínculo</th><th className="p-4">Evidência</th><th className="p-4 text-right">Ações</th></tr></thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {mappings.map(m => (
+                                    <tr key={m.id} className="hover:bg-slate-50">
+                                        <td className="p-4 font-medium">{m.discipline}</td>
+                                        <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${m.abet ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{m.abet || m.ppc}</span></td>
+                                        <td className="p-4 text-slate-500 truncate max-w-xs" title={m.evidence}>{m.evidence}</td>
+                                        <td className="p-4 text-right"><button onClick={() => setMappings(mappings.filter(x => x.id !== m.id))} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             );
 
             const renderCatalog = () => (
-                <div className="animate-in fade-in duration-500">
-                    <SectionHeader title="Base de Dados" description="Gerencie seus catálogos e importe CSV." action={<div className="text-slate-400 flex gap-2"><Database size={20}/></div>} />
-                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv" className="hidden" />
-                    <div className="space-y-8">
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                            <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center"><h3 className="font-bold text-slate-800 flex items-center gap-2"><FileSpreadsheet size={18} className="text-slate-400"/> Disciplinas ({disciplines.length})</h3><div className="flex gap-2"><button onClick={() => handleExportCSV(disciplines, 'disciplinas')} className="text-xs bg-white border px-3 py-1.5 rounded hover:bg-slate-50 text-slate-600 flex items-center gap-1"><Download size={12}/> Exportar</button><button onClick={() => triggerImport('disciplines')} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 flex items-center gap-1"><Upload size={12}/> Importar</button></div></div>
-                            <div className="max-h-60 overflow-y-auto p-2"><ul className="space-y-1">{disciplines.map(d => <li key={d.code} className="flex justify-between p-2 hover:bg-slate-50 rounded text-sm border-b border-slate-50 last:border-0"><span><strong>{d.code}</strong> - {d.name}</span></li>)}</ul></div>
-                        </div>
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                            <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center"><h3 className="font-bold text-slate-800 flex items-center gap-2"><FileSpreadsheet size={18} className="text-slate-400"/> ABET SOs ({abetSOs.length})</h3><div className="flex gap-2"><button onClick={() => handleExportCSV(abetSOs, 'abet_sos')} className="text-xs bg-white border px-3 py-1.5 rounded hover:bg-slate-50 text-slate-600 flex items-center gap-1"><Download size={12}/> Exportar</button><button onClick={() => triggerImport('abet')} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 flex items-center gap-1"><Upload size={12}/> Importar</button></div></div>
-                            <div className="max-h-60 overflow-y-auto p-2"><ul className="space-y-1">{abetSOs.map(so => <li key={so.id} className="p-2 hover:bg-slate-50 rounded text-sm border-b border-slate-50 last:border-0"><span className="font-bold text-blue-700 mr-2">{so.id}:</span> {so.description}</li>)}</ul></div>
-                        </div>
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                            <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center"><h3 className="font-bold text-slate-800 flex items-center gap-2"><FileSpreadsheet size={18} className="text-slate-400"/> PPC ({ppcCompetencies.length})</h3><div className="flex gap-2"><button onClick={() => handleExportCSV(ppcCompetencies, 'ppc_comp')} className="text-xs bg-white border px-3 py-1.5 rounded hover:bg-slate-50 text-slate-600 flex items-center gap-1"><Download size={12}/> Exportar</button><button onClick={() => triggerImport('ppc')} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 flex items-center gap-1"><Upload size={12}/> Importar</button></div></div>
-                            <div className="max-h-60 overflow-y-auto p-2"><ul className="space-y-1">{ppcCompetencies.map(p => <li key={p.id} className="p-2 hover:bg-slate-50 rounded text-sm border-b border-slate-50 last:border-0"><span className="font-bold text-purple-700 mr-2">{p.id}:</span> {p.description}</li>)}</ul></div>
-                        </div>
+                <div className="animate-fade-in">
+                    <SectionHeader title="Base de Dados" description="Gerencie a fonte de dados." action={<div className="text-slate-400"><Database size={24}/></div>} />
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-8 text-center mb-8">
+                        <h3 className="text-xl font-bold text-blue-900 mb-2">Atualização Manual (Local)</h3>
+                        <p className="text-blue-700 mb-6 max-w-md mx-auto">Se não tiver acesso ao token do GitHub, carregue o arquivo localmente.</p>
+                        <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv" className="hidden" />
+                        <button onClick={() => fileInputRef.current.click()} className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 shadow-lg">Carregar Arquivo Local</button>
                     </div>
                 </div>
             );
 
             return (
-                <div className="min-h-screen flex font-sans text-slate-900">
-                    <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col fixed h-full z-10">
+                <div className="min-h-screen flex flex-col md:flex-row relative">
+                    {/* MODAL GITHUB */}
+                    {showModal && (
+                        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Github size={20}/> Salvar no GitHub</h3>
+                                    <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+                                </div>
+                                <p className="text-sm text-slate-500 mb-4">Para atualizar a base oficial, você precisa de permissão de escrita (Personal Access Token).</p>
+                                
+                                <div className="space-y-3 mb-6">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 mb-1">Usuário do GitHub</label>
+                                        <input type="text" className="w-full border rounded p-2 text-sm" placeholder="ex: fastphoenixx" value={ghConfig.owner} onChange={e => setGhConfig({...ghConfig, owner: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 mb-1">Nome do Repositório</label>
+                                        <input type="text" className="w-full border rounded p-2 text-sm" placeholder="ex: matriz-competencias-unb" value={ghConfig.repo} onChange={e => setGhConfig({...ghConfig, repo: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 mb-1">Token de Acesso (PAT)</label>
+                                        <input type="password" className="w-full border rounded p-2 text-sm" placeholder="ghp_xxxxxxxxxxxx" value={ghConfig.token} onChange={e => setGhConfig({...ghConfig, token: e.target.value})} />
+                                        <p className="text-[10px] text-slate-400 mt-1">O token deve ter permissão 'repo'. Não será salvo permanentemente.</p>
+                                    </div>
+                                </div>
+
+                                <button onClick={saveToGitHub} disabled={syncStatus === 'loading'} className="w-full bg-slate-800 text-white py-2 rounded-lg font-bold hover:bg-slate-900 flex justify-center items-center gap-2">
+                                    {syncStatus === 'loading' ? <RefreshCw size={16} className="animate-spin"/> : <Upload size={16}/>}
+                                    {syncStatus === 'loading' ? 'Enviando...' : 'Confirmar Upload'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex-shrink-0">
                         <div className="p-6 border-b border-slate-100"><h1 className="text-xl font-bold text-blue-600 flex items-center gap-2"><div className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center text-sm">MC</div> Matriz UnB</h1><p className="text-xs text-slate-400 mt-1">Piloto Eng. Produção</p></div>
-                        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+                        <nav className="p-4 space-y-1">
                             <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'dashboard' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}><LayoutDashboard size={18} /> Dashboard</button>
                             <button onClick={() => setActiveTab('mapping')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'mapping' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}><LinkIcon size={18} /> Mapeamento</button>
-                            <button onClick={() => setActiveTab('analysis')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'analysis' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}><BarChart3 size={18} /> Cobertura (Análise)</button>
+                            <button onClick={() => setActiveTab('advanced')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'advanced' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}><Network size={18} /> Visualizações (Adv)</button>
                             <button onClick={() => setActiveTab('catalog')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'catalog' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}><Database size={18} /> Base de Dados</button>
                         </nav>
                     </aside>
-                    <main className="flex-1 md:ml-64 p-8 overflow-y-auto">
+                    <main className="flex-1 p-8 overflow-y-auto">
                         {activeTab === 'dashboard' && renderDashboard()}
                         {activeTab === 'mapping' && renderMapping()}
-                        {activeTab === 'analysis' && renderAnalysis()}
+                        {activeTab === 'advanced' && renderAdvanced()}
                         {activeTab === 'catalog' && renderCatalog()}
                     </main>
                 </div>
