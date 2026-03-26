@@ -60,16 +60,4 @@ As bases de dados foram construídas cruzando:
 * **PPC Engenharia de Produção UnB:** Competências PPC-EP-01 a PPC-EP-07.  
 * **ABET Criteria for Accrediting Engineering Programs:** Student Outcomes (SOs) 1 a 7 (Ciclo 2025-2026).
 
-## **👥 Equipe do Projeto**
-
-Trabalho desenvolvido pela equipe da disciplina PSP4 (2024/2):
-
-| Nome | Matrícula |
-| :---- | :---- |
-| **Arthur de Ávila Oliveira Trojan Repiso** | 221020950 |
-| **Bruno Sérgio do Amaral** | 190052473 |
-| **Cristiano Alves Rose** | 222005368 |
-| **Vitor Alves F. C. Cavalcante** | 221006647 |
-| **Gabriel Brum Tristão de Castro** | 221006520 |
-
 Desenvolvido com React, TailwindCSS e Recharts. *Licença: MIT / Uso Acadêmico UnB.*
